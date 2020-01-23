@@ -1,53 +1,24 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-#[macro_use] extern crate rocket;
-#[macro_use] extern crate rocket_contrib;
+#![feature(type_ascription)]
+use actix_web::{middleware, web, App, HttpServer};
 
+mod coffee;
 mod payload;
 
-use rocket_contrib::json::{JsonValue};
-use rocket::request::{LenientForm};
+#[actix_rt::main]
+async fn main() -> std::io::Result<()> {
+    std::env::set_var("RUST_LOG", "actix_web=info");
+    env_logger::init();
 
-use payload::{Payload, SlackText};
+    print!("Start litening => 127.0.0.1:8088");
 
-#[get("/coffee/add")]
-fn add_coffee_get() -> &'static str {
-    "type '/add_coffee artist-title'"
-}
-
-#[post("/coffee/start", data="<payload>")]
-fn start_coffee_post(payload: LenientForm<Payload>) -> JsonValue {
-    match &payload.text {
-        Some(slack_text) => {
-            let SlackText(text) = slack_text;
-            
-            json!({
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "*It's 80 degrees right now.*"
-                        }
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": text
-                        }
-                    }
-                ]
-            })
-        },
-        None => json!({
-            "response_type": "ephemeral",
-            "text": "Sorry, that didn't work. Please try again."
-        })
-    }
-}
-
-fn main() {
-    rocket::ignite()
-        .mount("/", routes![add_coffee_get, start_coffee_post])
-        .launch();
+    HttpServer::new(|| {
+        App::new()
+            .wrap(middleware::Logger::default())
+            .route("/start", web::post().to(coffee::route::start_pick_post))
+            .route("/pick", web::post().to(coffee::route::pick_post))
+            .route("/add", web::post().to(coffee::route::add_post))
+    })
+    .bind("127.0.0.1:8088")?
+    .run()
+    .await
 }

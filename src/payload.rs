@@ -1,39 +1,31 @@
-use rocket::request::{FromFormValue};
-use rocket::http::RawStr;
+use serde::Deserialize;
 
-#[derive(Debug, FromForm)]
+#[derive(Debug, Deserialize)]
 pub struct Payload {
-    pub text: Option<SlackText>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub response_url: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub trigger_id: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub user_name: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub channel_id: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub channel_name: Option<String>,
-}
-
-/// Representation of any text sent through slack
-/// the text must be processed to escape specific characters
-#[derive(Debug, Default)]
-pub struct SlackText(pub String);
-
-impl<'v> FromFormValue<'v> for SlackText {
-    type Error = &'v RawStr;
-
-    fn from_form_value(form_value: &'v RawStr) -> Result<SlackText, &'v RawStr> {
-        let text = form_value.to_string();
-        let s = text.chars().fold(String::new(), |mut s, c| {
-            match c {
-                '&' => s.push_str("&amp;"),
-                '<' => s.push_str("&lt;"),
-                '>' => s.push_str("&gt;"),
-                _ => s.push(c),
-            }
-            s
-        });
-
-        Ok(SlackText(s))
-    }
 }
